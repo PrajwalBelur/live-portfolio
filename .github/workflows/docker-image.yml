@@ -14,12 +14,24 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Get the current image number
+      id: get-image-number
+      run: echo "::set-output name=image_number::$(cat image_number.txt)"
+    - name: Increment image number
+      run: echo $(( $(cat image_number.txt) + 1 )) > image_number.txt
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag prajwalbelur/portf:22
+      run: docker build . --file Dockerfile --tag prajwalbelur/portf:${{ steps.get-image-number.outputs.image_number }}
     - name: Log in to Docker Hub
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
     - name: Push Docker image to Docker Hub
-      run: docker push prajwalbelur/portf:22
+      run: docker push prajwalbelur/portf:${{ steps.get-image-number.outputs.image_number }}
+    - name: Commit updated image number
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "GitHub Actions"
+        git add image_number.txt
+        git commit -m "Update image number"
+        git push
